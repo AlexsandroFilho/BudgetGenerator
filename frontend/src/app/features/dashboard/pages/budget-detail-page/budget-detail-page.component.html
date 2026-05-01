@@ -1,0 +1,205 @@
+<div class="page-container">
+  <!-- Navbar / Header -->
+  <div class="navbar">
+    <button class="btn-back" (click)="goBack()" title="Voltar">
+      ← Voltar
+    </button>
+    <h1 class="navbar-title">Detalhes do Orçamento</h1>
+    <div class="navbar-actions">
+      <button class="btn-print" (click)="handlePrint()" title="Imprimir">
+        🖨️ Imprimir
+      </button>
+      <button class="btn-pdf" (click)="handleDownloadPDF()" title="Baixar PDF">
+        📄 PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Carregando orçamento...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error() && !isLoading()" class="error-state">
+    <p>⚠️ {{ error() }}</p>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="budget() && !isLoading() && !error()" class="content-wrapper">
+    <!-- A4 Document -->
+    <div class="a4-document">
+      <!-- Header -->
+      <div class="doc-header">
+        <div class="header-left">
+          <div class="company-logo">
+            <span class="logo-placeholder">📊</span>
+          </div>
+        </div>
+        <div class="header-center">
+          <h1 class="doc-title">PROPOSTA DE ORÇAMENTO</h1>
+          <p class="doc-subtitle">Serviço de Consultoria e Implementação</p>
+        </div>
+        <div class="header-right">
+          <p class="doc-meta"><strong>Data:</strong> {{ formatDate(budget()!.criado_em) }}</p>
+          <p class="doc-meta"><strong>Ref:</strong> ORÇ-{{ budget()!.id.substring(0, 8).toUpperCase() }}</p>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="doc-divider"></div>
+
+      <!-- Parties Section -->
+      <div class="parties-section">
+        <div class="party-info">
+          <h3 class="party-title">Prestador de Serviço</h3>
+          <p><strong>Empresa:</strong> Sua Empresa LTDA</p>
+          <p><strong>CNPJ:</strong> 12.345.678/0001-00</p>
+          <p><strong>Endereço:</strong> Rua Exemplo, 123 - São Paulo/SP</p>
+          <p><strong>Contato:</strong> suporte&#64;empresa.com.br | (11) 3000-0000</p>
+        </div>
+
+        <div class="party-info client-info">
+          <h3 class="party-title">Cliente</h3>
+          <p><strong>Tipo:</strong> {{ budget()!.tipo }}</p>
+          <p><strong>Categoria:</strong> {{ budget()!.categoria }}</p>
+          <p><strong>Descrição:</strong> {{ budget()!.descricao_cliente }}</p>
+          <p><strong>Contato:</strong> A Definir</p>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="doc-divider"></div>
+
+      <!-- Technical Description -->
+      <div class="description-section">
+        <h3 class="section-title">Descrição da Proposta</h3>
+        <div class="description-content">
+          <p>{{ budget()!.technical_description || budget()!.descricao_cliente }}</p>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="doc-divider"></div>
+
+      <!-- Costs Table -->
+      <div class="costs-section">
+        <!-- Hardware Items -->
+        <h3 class="section-title">Itens de Hardware</h3>
+        <table class="costs-table" *ngIf="getHardwareItems().length > 0; else noHardware">
+          <thead>
+            <tr>
+              <th class="col-description">Descrição</th>
+              <th class="col-qt">Qt.</th>
+              <th class="col-value">Valor Unit.</th>
+              <th class="col-total">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of getHardwareItems()" class="table-row">
+              <td class="col-description">{{ item.descricao }}</td>
+              <td class="col-qt">{{ item.quantidade }}</td>
+              <td class="col-value">{{ formatCurrency(item.valor_unitario) }}</td>
+              <td class="col-total">
+                <strong>{{ formatCurrency(item.valor_unitario * item.quantidade) }}</strong>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="subtotal-row">
+              <td colspan="3" class="subtotal-label">Subtotal Hardware:</td>
+              <td class="subtotal-value">{{ formatCurrency(calculateHardwareTotal()) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <ng-template #noHardware>
+          <p class="no-items">Nenhum item de hardware nesta proposta</p>
+        </ng-template>
+
+        <!-- Services Items -->
+        <h3 class="section-title" style="margin-top: 2rem;">Itens de Serviço</h3>
+        <table class="costs-table" *ngIf="getServiceItems().length > 0; else noServices">
+          <thead>
+            <tr>
+              <th class="col-description">Descrição</th>
+              <th class="col-qt">Qt.</th>
+              <th class="col-value">Valor Unit.</th>
+              <th class="col-total">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of getServiceItems()" class="table-row">
+              <td class="col-description">{{ item.descricao }}</td>
+              <td class="col-qt">{{ item.quantidade }}</td>
+              <td class="col-value">{{ formatCurrency(item.valor_unitario) }}</td>
+              <td class="col-total">
+                <strong>{{ formatCurrency(item.valor_unitario * item.quantidade) }}</strong>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="subtotal-row">
+              <td colspan="3" class="subtotal-label">Subtotal Serviços:</td>
+              <td class="subtotal-value">{{ formatCurrency(calculateServiceTotal()) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <ng-template #noServices>
+          <p class="no-items">Nenhum item de serviço nesta proposta</p>
+        </ng-template>
+
+        <!-- Grand Total -->
+        <div class="grand-total">
+          <table class="total-table">
+            <tr>
+              <td class="total-label">TOTAL DA PROPOSTA:</td>
+              <td class="total-value">{{ formatCurrency(calculateGrandTotal()) }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="doc-divider"></div>
+
+      <!-- Terms Section -->
+      <div class="terms-section">
+        <h3 class="section-title">Condições Gerais</h3>
+        <ul class="terms-list">
+          <li>Validade da proposta: 30 dias a partir da data de emissão</li>
+          <li>Pagamento conforme acordado em contrato específico</li>
+          <li>Prazos de implementação a serem confirmados com o cliente</li>
+          <li>Esta proposta é vinculante após assinatura bilateral</li>
+        </ul>
+      </div>
+
+      <!-- Divider -->
+      <div class="doc-divider"></div>
+
+      <!-- Signatures Section -->
+      <div class="signatures-section">
+        <div class="signature-box">
+          <div class="signature-area">
+            <div class="signature-line"></div>
+            <p class="signature-label">Assinatura do Cliente</p>
+            <p class="signature-date">Data: _____ / _____ / _______</p>
+          </div>
+        </div>
+
+        <div class="signature-box">
+          <div class="signature-area">
+            <div class="signature-line"></div>
+            <p class="signature-label">Assinatura do Prestador</p>
+            <p class="signature-date">Data: _____ / _____ / _______</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="doc-footer">
+        <p>Proposta gerada pelo Sistema de Orçamentos - {{ formatDate(todayDate) }}</p>
+      </div>
+    </div>
+  </div>
+</div>

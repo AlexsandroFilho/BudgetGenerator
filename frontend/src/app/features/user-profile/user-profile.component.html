@@ -1,0 +1,81 @@
+<div class="profile-container container">
+  <div *ngIf="isLoading" class="loader">Carregando seus dados...</div>
+
+  <div *ngIf="!isLoading && user" class="profile-layout">
+    <!-- Card do Usuário -->
+    <div class="profile-card">
+      <div class="avatar-section">
+        <div class="avatar-wrapper" (click)="fileInput.click()">
+          <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" class="avatar-image" alt="Profile photo">
+          <div *ngIf="!user.avatarUrl" class="avatar-placeholder">
+            {{ user.nome?.charAt(0).toUpperCase() }}
+          </div>
+          <div class="avatar-overlay">
+            <span>📷</span>
+          </div>
+        </div>
+        <input #fileInput type="file" (change)="onFileSelected($event)" style="display: none" accept="image/*">
+        <h2>{{ user.nome }}</h2>
+        <span class="user-role">Membro Premium</span>
+      </div>
+
+      <div class="info-list">
+        <div class="info-item">
+          <label>E-mail</label>
+          <div class="value-box readonly">{{ user.email }}</div>
+        </div>
+        <div class="info-item">
+          <label>Telefone</label>
+          <div *ngIf="!editingPhone && user.telefone" class="value-box">
+            {{ user.telefone }}
+            <button class="btn-edit-mini" (click)="toggleEditPhone()">✏️</button>
+          </div>
+          <div *ngIf="!editingPhone && !user.telefone" class="value-box empty">
+            <button class="btn-add-phone" (click)="toggleEditPhone()">+ Adicionar Telefone</button>
+          </div>
+          <div *ngIf="editingPhone" class="edit-phone-box">
+            <input type="text" [(ngModel)]="newPhone" placeholder="(00) 00000-0000">
+            <div class="edit-actions">
+              <button class="btn-save-mini" (click)="onUpdateProfile()" [disabled]="updatingProfile">✓</button>
+              <button class="btn-cancel-mini" (click)="toggleEditPhone()" [disabled]="updatingProfile">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulário de Senha -->
+    <div class="password-card">
+      <h3>🛡️ Segurança da Conta</h3>
+      <p>Gerencie sua senha de acesso de forma segura.</p>
+
+      <form [formGroup]="passwordForm" (ngSubmit)="onUpdatePassword()">
+        <div class="form-group">
+          <label for="senhaAntiga">Senha Atual</label>
+          <input id="senhaAntiga" type="password" formControlName="senhaAntiga" placeholder="••••••••">
+        </div>
+
+        <div class="form-group">
+          <label for="novaSenha">Nova Senha</label>
+          <input id="novaSenha" type="password" formControlName="novaSenha" placeholder="Mínimo 6 caracteres">
+        </div>
+
+        <div class="form-group">
+          <label for="confirmarSenha">Confirmar Nova Senha</label>
+          <input id="confirmarSenha" type="password" formControlName="confirmarSenha" placeholder="••••••••">
+          <small *ngIf="passwordForm.errors?.['mismatch'] && passwordForm.get('confirmarSenha')?.touched" class="error-text">
+            As senhas não coincidem.
+          </small>
+        </div>
+
+        <div *ngIf="passwordMessage" class="alert-success">{{ passwordMessage }}</div>
+        <div *ngIf="passwordError" class="alert-error">{{ passwordError }}</div>
+
+        <button type="submit" [disabled]="passwordForm.invalid || isSaving" class="btn btn-primary btn-block">
+          <span *ngIf="!isSaving">Atualizar Senha 🛡️</span>
+          <span *ngIf="isSaving" class="spinner"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

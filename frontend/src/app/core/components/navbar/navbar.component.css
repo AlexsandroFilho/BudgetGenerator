@@ -1,0 +1,5 @@
+/* Estilos específicos da Navbar — globais definidos em styles.css */
+@media (max-width: 768px) {
+  .navbar-links { gap: 8px; }
+  .logo-text { display: none; }
+}

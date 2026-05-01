@@ -1,0 +1,48 @@
+<div class="card budget-card">
+  <div class="card-header">
+    <h3>Novo Orçamento com IA 🤖</h3>
+    <button type="button" class="btn-close" (click)="closeForm.emit()">×</button>
+  </div>
+  <p>Combine a sua necessidade técnica com a precisão da inteligência artificial.</p>
+
+  <form [formGroup]="budgetForm" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="tipo">Tipo</label>
+        <select id="tipo" formControlName="tipo">
+          <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="categoria">Categoria</label>
+        <select id="categoria" formControlName="categoria">
+          <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="descricao_cliente">Descrição do Projeto / Problema</label>
+      <textarea 
+        id="descricao_cliente" 
+        formControlName="descricao_cliente" 
+        rows="4" 
+        placeholder="Descreva detalhadamente o que precisa..."
+        [class.invalid]="budgetForm.get('descricao_cliente')?.invalid && budgetForm.get('descricao_cliente')?.touched"
+      ></textarea>
+      <div *ngIf="budgetForm.get('descricao_cliente')?.invalid && budgetForm.get('descricao_cliente')?.touched" class="error-text">
+        <small *ngIf="budgetForm.get('descricao_cliente')?.errors?.['required']">A descrição é obrigatória.</small>
+        <small *ngIf="budgetForm.get('descricao_cliente')?.errors?.['minlength']">Mínimo de 10 caracteres.</small>
+      </div>
+    </div>
+    <div *ngIf="errorMessage" class="alert-error">
+      {{ errorMessage }}
+    </div>
+
+    <button type="submit" [disabled]="budgetForm.invalid || isLoading" class="btn btn-primary btn-block">
+      <span *ngIf="!isLoading">Solicitar com IA 🚀</span>
+      <span *ngIf="isLoading" class="spinner"></span>
+    </button>
+  </form>
+</div>

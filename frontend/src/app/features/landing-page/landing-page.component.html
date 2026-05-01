@@ -1,0 +1,254 @@
+<!-- SEÇÃO PÚBLICA: Hero + Serviços -->
+<ng-container *ngIf="!isLoggedIn">
+  <section class="hero">
+    <div class="container hero-content">
+      <div class="hero-text">
+        <h1>Gere Orçamentos Inteligentes em <span>Segundos</span></h1>
+        <p>Utilizamos Inteligência Artificial para decompor suas necessidades técnicas em orçamentos precisos e profissionais.</p>
+        <div class="hero-actions">
+          <button (click)="openRegister()" class="btn btn-primary btn-lg">Começar Agora — É Grátis</button>
+          <button (click)="openLogin()" class="btn btn-outline-white">Já tenho conta</button>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="image-placeholder">AI POWERED ✨</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="services">
+    <div class="container text-center">
+      <h2 class="section-title">Nossos Serviços</h2>
+      <p class="section-subtitle">Soluções completas para suas necessidades tecnológicas.</p>
+      <div class="services-grid">
+        <div class="service-card" *ngFor="let servico of servicos">
+          <div class="service-icon">{{ servico.icon }}</div>
+          <h3>{{ servico.titulo }}</h3>
+          <p>{{ servico.descricao }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="container text-center">
+      <h2>Pronto para otimizar seus orçamentos?</h2>
+      <button (click)="openRegister()" class="btn btn-primary btn-lg">Criar Minha Conta Grátis</button>
+    </div>
+  </section>
+</ng-container>
+
+<!-- SEÇÃO LOGADA: Painel de Orçamentos -->
+<div *ngIf="isLoggedIn" class="dashboard-panel">
+  <div class="container">
+
+    <!-- Header do painel -->
+    <div class="panel-header">
+      <div>
+        <h1 class="panel-title">Meus Orçamentos</h1>
+        <p class="panel-subtitle">Gerencie e acompanhe todos os seus orçamentos inteligentes.</p>
+      </div>
+      <button (click)="showForm = !showForm" class="btn btn-primary btn-generate">
+        <span class="plus-icon">+</span> Gerar Novo Orçamento
+      </button>
+    </div>
+
+    <!-- Formulário colapsável -->
+    <div *ngIf="showForm" class="form-panel">
+      <div class="form-panel-header">
+        <h3>🤖 Novo Orçamento com IA</h3>
+        <button class="btn-icon-close" (click)="showForm = false">×</button>
+      </div>
+      <p class="form-desc">Descreva o que precisa e nossa IA gerará um orçamento detalhado automaticamente.</p>
+
+      <form [formGroup]="budgetForm" (ngSubmit)="submitBudget()">
+        <div class="form-row-2">
+          <div class="form-field">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" formControlName="tipo">
+              <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="categoria">Categoria</label>
+            <select id="categoria" formControlName="categoria">
+              <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="descricao">Descrição do Projeto</label>
+          <textarea
+            id="descricao"
+            formControlName="descricao_cliente"
+            rows="4"
+            placeholder="Ex: Preciso de um sistema de controle de estoque com relatórios...">
+          </textarea>
+          <small *ngIf="budgetForm.get('descricao_cliente')?.invalid && budgetForm.get('descricao_cliente')?.touched" class="field-error">
+            Mínimo de 10 caracteres.
+          </small>
+        </div>
+
+        <div *ngIf="formError" class="alert-error">{{ formError }}</div>
+
+        <div class="form-actions">
+          <button type="button" (click)="showForm = false" class="btn btn-ghost">Cancelar</button>
+          <button type="submit" [disabled]="budgetForm.invalid || isSubmitting" class="btn btn-primary">
+            <span *ngIf="!isSubmitting">Solicitar com IA 🚀</span>
+            <span *ngIf="isSubmitting" class="spinner"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Lista de orçamentos -->
+    <div class="budgets-box">
+      <div *ngIf="isLoadingBudgets" class="empty-state">Carregando orçamentos...</div>
+
+      <div *ngIf="!isLoadingBudgets && budgets.length === 0" class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>Você ainda não gerou nenhum orçamento.</p>
+        <button (click)="showForm = true" class="btn btn-primary">Gerar meu primeiro orçamento</button>
+      </div>
+
+      <div *ngIf="!isLoadingBudgets && budgets.length > 0">
+        <!-- Cards de orçamento -->
+        <div class="budget-list">
+          <div class="budget-item" *ngFor="let budget of pagedBudgets" [class.expanded]="expandedBudgetId === budget.id">
+            
+            <!-- Header do Card (Sempre visível) -->
+            <div class="budget-item-header" (click)="toggleExpandBudget(budget.id)">
+              <div class="budget-item-left">
+                <div class="budget-type-badge">{{ budget.tipo }}</div>
+                <div class="budget-info">
+                  <div class="budget-desc">{{ budget.title || (budget.tipo + ' - ' + budget.categoria) }}</div>
+                  <div class="budget-date">{{ formatDate(budget.criado_em) }}</div>
+                </div>
+              </div>
+              <div class="budget-item-right">
+                <span class="status-badge" [ngClass]="getStatusClass(budget.status)">
+                  {{ budget.status }}
+                </span>
+                <div class="budget-total">{{ formatCurrency(budget.total_estimado) }}</div>
+                <div class="budget-actions">
+                  <button title="Baixar PDF" class="action-btn pdf-btn" (click)="downloadBudget(budget, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </button>
+                  <button title="Editar" class="action-btn edit-btn" (click)="onEditBudget(budget, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button title="Excluir" class="action-btn delete-btn" (click)="handleDelete(budget.id, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Corpo do Card (Visível apenas se expandido) -->
+            <div class="budget-item-body" *ngIf="expandedBudgetId === budget.id">
+              <h3 class="proposal-title">Proposta Comercial: {{ budget.title || 'Upgrade / Serviço Técnico' }}</h3>
+              
+              <div class="proposal-description">
+                {{ budget.technical_description || 'Sem descrição técnica detalhada disponível no momento.' }}
+              </div>
+
+              <div class="proposal-section" *ngIf="budget.items && budget.items.length > 0">
+                <h4>Detalhamento de Itens</h4>
+                <div class="table-responsive">
+                  <table class="modern-budget-table">
+                    <thead>
+                      <tr>
+                        <th class="col-quant">Quant.</th>
+                        <th class="col-unid">Unid.</th>
+                        <th class="col-desc">Descrição</th>
+                        <th class="col-unit">Unitário</th>
+                        <th class="col-total">TOTAL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of budget.items">
+                        <td class="col-quant">{{ item.quantidade }}</td>
+                        <td class="col-unid">{{ item.unidade || 'un' }}</td>
+                        <td class="col-desc">{{ item.descricao }}</td>
+                        <td class="col-unit">{{ formatCurrency(item.valor_unitario) }}</td>
+                        <td class="col-total">{{ formatCurrency(item.quantidade * item.valor_unitario) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="proposal-section">
+                <h4>Garantia</h4>
+                <p>Garantia de 1 ano para o hardware (fabricante) e 30 dias para o serviço de instalação.</p>
+              </div>
+
+              <div class="signatures-area">
+                <div class="signature-box">
+                  <div class="signature-line"></div>
+                  <span>Assinatura do Cliente</span>
+                </div>
+                <div class="signature-box">
+                  <div class="signature-line"></div>
+                  <span>Assinatura do Prestador</span>
+                </div>
+              </div>
+
+              <div class="proposal-actions">
+                <button class="btn-download-pdf" (click)="downloadBudget(budget, $event)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Baixar Proposta em PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paginação -->
+        <div class="pagination" *ngIf="totalPages > 1">
+          <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">‹</button>
+          <button
+            *ngFor="let p of pages"
+            class="page-btn"
+            [class.active]="p === currentPage"
+            (click)="goToPage(p)">
+            {{ p }}
+          </button>
+          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">›</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal de Edição -->
+<div class="edit-modal-overlay" *ngIf="editingBudget" (click)="closeEdit()">
+  <div class="edit-modal-content" (click)="$event.stopPropagation()">
+    <div class="edit-modal-header">
+      <h3>✏️ Editar Orçamento</h3>
+      <button class="btn-close-edit" (click)="closeEdit()">×</button>
+    </div>
+    
+    <form [formGroup]="editForm" (ngSubmit)="onSaveBudget()">
+      <div class="form-field">
+        <label>Título da Proposta</label>
+        <input type="text" formControlName="title" placeholder="Ex: Proposta de Upgrade Gamer">
+      </div>
+      
+      <div class="form-field">
+        <label>Descrição Técnica</label>
+        <textarea formControlName="technical_description" rows="10" placeholder="Detalhes técnicos da proposta..."></textarea>
+      </div>
+      
+      <div class="edit-modal-actions">
+        <button type="button" class="btn btn-ghost" (click)="closeEdit()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || isSavingEdit">
+          <span *ngIf="!isSavingEdit">Salvar Alterações</span>
+          <span *ngIf="isSavingEdit" class="spinner"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

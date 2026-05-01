@@ -1,0 +1,19 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <button class="btn-close" (click)="onClose()">×</button>
+    
+    <div class="modal-body">
+      <app-login *ngIf="mode === 'login'"></app-login>
+      <app-register *ngIf="mode === 'register'"></app-register>
+    </div>
+
+    <div class="modal-footer">
+      <p *ngIf="mode === 'login'">
+        Não tem uma conta? <button class="btn-link" (click)="toggleMode()">Cadastre-se agora</button>
+      </p>
+      <p *ngIf="mode === 'register'">
+        Já possui uma conta? <button class="btn-link" (click)="toggleMode()">Faça login</button>
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,86 @@
+<div class="register-container">
+  <div class="register-card">
+    <div class="register-header">
+      <h1>Crie Sua Conta</h1>
+      <p>Gerencie orçamentos inteligentes em segundos.</p>
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="nome">Nome Completo</label>
+        <input 
+          id="nome" 
+          type="text" 
+          formControlName="nome" 
+          placeholder="Seu nome completo"
+          [class.invalid]="registerForm.get('nome')?.invalid && registerForm.get('nome')?.touched"
+        >
+        <div *ngIf="registerForm.get('nome')?.invalid && registerForm.get('nome')?.touched" class="error-text">
+          <small *ngIf="registerForm.get('nome')?.errors?.['required']">Nome é obrigatório.</small>
+          <small *ngIf="registerForm.get('nome')?.errors?.['minlength']">Mínimo de 3 caracteres.</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">E-mail Corporativo</label>
+        <input 
+          id="email" 
+          type="email" 
+          formControlName="email" 
+          placeholder="exemplo@empresa.com"
+          [class.invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
+        >
+        <div *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched" class="error-text">
+          <small *ngIf="registerForm.get('email')?.errors?.['required']">E-mail é obrigatório.</small>
+          <small *ngIf="registerForm.get('email')?.errors?.['email']">Formato de e-mail inválido.</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="telefone">Telefone / WhatsApp</label>
+        <input 
+          id="telefone" 
+          type="tel" 
+          formControlName="telefone" 
+          placeholder="(00) 00000-0000"
+          [class.invalid]="registerForm.get('telefone')?.invalid && registerForm.get('telefone')?.touched"
+        >
+        <div *ngIf="registerForm.get('telefone')?.invalid && registerForm.get('telefone')?.touched" class="error-text">
+          <small *ngIf="registerForm.get('telefone')?.errors?.['required']">Telefone é obrigatório.</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="senha">Defina uma Senha</label>
+        <input 
+          id="senha" 
+          type="password" 
+          formControlName="senha" 
+          placeholder="Mínimo 6 caracteres"
+          [class.invalid]="registerForm.get('senha')?.invalid && registerForm.get('senha')?.touched"
+        >
+        <div *ngIf="registerForm.get('senha')?.invalid && registerForm.get('senha')?.touched" class="error-text">
+          <small *ngIf="registerForm.get('senha')?.errors?.['required']">Senha é obrigatória.</small>
+          <small *ngIf="registerForm.get('senha')?.errors?.['minlength']">Mínimo 6 caracteres.</small>
+        </div>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-error">
+        {{ errorMessage }}
+      </div>
+
+      <div *ngIf="successMessage" class="alert alert-success">
+        {{ successMessage }}
+      </div>
+
+      <button type="submit" [disabled]="registerForm.invalid || isLoading" class="btn btn-primary btn-block">
+        <span *ngIf="!isLoading">Criar Conta Grátis</span>
+        <span *ngIf="isLoading" class="spinner"></span>
+      </button>
+
+      <div class="register-footer">
+        Já possui uma conta? <a routerLink="/login">Faça Login</a>
+      </div>
+    </form>
+  </div>
+</div>

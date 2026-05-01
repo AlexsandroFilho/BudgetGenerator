@@ -1,0 +1,136 @@
+<div class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <!-- Cabeçalho da Proposta -->
+    <header class="proposal-header">
+      <div class="header-main">
+        <div *ngIf="!isEditing" class="title-display">
+          <h1 class="proposal-title">{{ budget.title || 'Proposta Comercial - Solução em TI' }}</h1>
+          <p class="proposal-id">Ref: #{{ budget.id.substring(0, 8).toUpperCase() }}</p>
+        </div>
+        <div *ngIf="isEditing" class="title-edit">
+          <label for="edit-title">Título da Proposta:</label>
+          <input id="edit-title" [(ngModel)]="budget.title" class="input-flat" placeholder="Digite o título da proposta...">
+        </div>
+      </div>
+      <button class="close-icon" (click)="closeModal()">&times;</button>
+    </header>
+
+    <div class="proposal-body">
+      
+      <!-- Seção de Contexto -->
+      <section class="context-section">
+        <div class="metadata">
+          <span class="tag">{{ budget.tipo }}</span>
+          <span class="tag outline">{{ budget.categoria }}</span>
+          <span class="date">{{ budget.criado_em | date:'longDate':'':'pt-BR' }}</span>
+        </div>
+        <p class="original-desc"><strong>Solicitação Original:</strong> {{ budget.descricao_cliente }}</p>
+      </section>
+
+      <!-- Descrição Técnica (Bloco Legível) -->
+      <section class="explanation-block">
+        <h2 class="section-title">Análise Técnica e Consultoria</h2>
+        <div *ngIf="!isEditing" class="text-content">
+          {{ budget.technical_description }}
+        </div>
+        <div *ngIf="isEditing" class="edit-content">
+          <textarea 
+            [(ngModel)]="budget.technical_description" 
+            class="textarea-flat"
+            placeholder="Ajuste a análise técnica aqui..."
+          ></textarea>
+          <small class="helper-text">Edite a análise gerada pela IA para personalizar o atendimento ao seu cliente.</small>
+        </div>
+      </section>
+
+      <!-- Tabelas de Itens -->
+      <div class="tables-group">
+        
+        <!-- Tabela Hardware -->
+        <section class="items-group" *ngIf="hardwareItems.length > 0">
+          <h3 class="subsection-title">Produtos e Equipamentos</h3>
+          <table class="proposal-table">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th class="centered">Qtd.</th>
+                <th class="right">Unitário</th>
+                <th class="right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of hardwareItems">
+                <td>{{ item.descricao }}</td>
+                <td class="centered">
+                  <span *ngIf="!isEditing">{{ item.quantidade }}</span>
+                  <input *ngIf="isEditing" type="number" [(ngModel)]="item.quantidade" class="edit-qty">
+                </td>
+                <td class="right">
+                  <span *ngIf="!isEditing">{{ formatCurrency(item.valor_unitario) }}</span>
+                  <input *ngIf="isEditing" type="number" [(ngModel)]="item.valor_unitario" class="edit-price">
+                </td>
+                <td class="right emphasis">{{ formatCurrency(item.quantidade * item.valor_unitario) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Tabela Serviços -->
+        <section class="items-group" *ngIf="serviceItems.length > 0">
+          <h3 class="subsection-title">Serviços e Mão de Obra Especializada</h3>
+          <table class="proposal-table">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th class="centered">Qtd.</th>
+                <th class="right">Unitário</th>
+                <th class="right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of serviceItems">
+                <td>{{ item.descricao }}</td>
+                <td class="centered">
+                  <span *ngIf="!isEditing">{{ item.quantidade }}</span>
+                  <input *ngIf="isEditing" type="number" [(ngModel)]="item.quantidade" class="edit-qty">
+                </td>
+                <td class="right">
+                  <span *ngIf="!isEditing">{{ formatCurrency(item.valor_unitario) }}</span>
+                  <input *ngIf="isEditing" type="number" [(ngModel)]="item.valor_unitario" class="edit-price">
+                </td>
+                <td class="right emphasis">{{ formatCurrency(item.quantidade * item.valor_unitario) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+
+      <!-- Rodapé com Totalizadores -->
+      <footer class="proposal-summary">
+        <div class="summary-content">
+          <div class="total-box">
+            <span class="label">Investimento Total Estimado</span>
+            <span class="value">{{ formatCurrency(totalItems) }}</span>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+
+    <!-- Ações Inferiores -->
+    <div class="proposal-footer">
+      <button class="btn btn-ghost" (click)="closeModal()" [disabled]="isSaving">Sair</button>
+      <button class="btn btn-action" (click)="toggleEdit()" [disabled]="isSaving">
+        <ng-container *ngIf="!isEditing">
+          <span class="btn-icon">✎</span> Editar Proposta
+        </ng-container>
+        <ng-container *ngIf="isEditing">
+          {{ isSaving ? 'Salvando...' : 'Finalizar Edição' }}
+        </ng-container>
+      </button>
+    </div>
+
+  </div>
+</div>

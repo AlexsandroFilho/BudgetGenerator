@@ -1,0 +1,160 @@
+<div class="budget-list-container">
+  <!-- Header com botão criar -->
+  <div class="list-header">
+    <h2 class="list-title">Meus Orçamentos</h2>
+    <button class="btn-create" (click)="openCreateModal()" title="Criar novo orçamento">
+      + Novo Orçamento
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Carregando orçamentos...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading() && budgets().length === 0" class="empty-state">
+    <div class="empty-icon">📋</div>
+    <p class="empty-text">Você ainda não tem orçamentos</p>
+    <p class="empty-subtitle">Clique no botão acima para criar seu primeiro orçamento!</p>
+  </div>
+
+  <!-- Lista de Orçamentos -->
+  <div *ngIf="!isLoading() && budgets().length > 0" class="budgets-list">
+    <div 
+      *ngFor="let budget of budgets()" 
+      class="budget-card"
+      [class.expanded]="expandedBudgetId() === budget.id"
+    >
+      <!-- Card Header - Collapser -->
+      <div class="card-header" (click)="toggleExpandBudget(budget.id)">
+        <div class="header-left">
+          <button class="expand-btn" [class.rotated]="expandedBudgetId() === budget.id">
+            ▼
+          </button>
+          <div class="header-info">
+            <h3 class="card-title">{{ budget.title || 'Orçamento Inteligente' }}</h3>
+            <div class="card-meta">
+              <span class="status-badge" [class.gerado]="budget.status === 'GERADO'">
+                {{ getStatusLabel(budget.status) }}
+              </span>
+              <span class="date">{{ formatDate(budget.criado_em) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <span class="total">{{ formatCurrency(budget.total_estimado || 0) }}</span>
+        </div>
+      </div>
+
+      <!-- Card Body - Conteúdo Colapsável -->
+      <div *ngIf="expandedBudgetId() === budget.id" class="card-body">
+        <div class="description-section">
+          <h4 class="section-title">Descrição Técnica</h4>
+          <p class="description-text">
+            {{ budget.technical_description || 'Sem descrição técnica disponível.' }}
+          </p>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Tipo:</label>
+            <span>{{ budget.tipo || 'N/A' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Categoria:</label>
+            <span>{{ budget.categoria || 'N/A' }}</span>
+          </div>
+          <div class="info-item">
+            <label>Descrição do Cliente:</label>
+            <span>{{ budget.descricao_cliente || 'N/A' }}</span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button 
+            class="action-btn view" 
+            (click)="viewBudgetDetails(budget.id, $event)"
+            title="Ver detalhes completos"
+          >
+            👁️ Ver Detalhes
+          </button>
+          <button 
+            class="action-btn download" 
+            (click)="downloadPDF(budget.id, $event)"
+            title="Baixar PDF"
+          >
+            📄 PDF
+          </button>
+          <button 
+            class="action-btn delete" 
+            (click)="deleteBudget(budget.id, $event)"
+            title="Excluir orçamento"
+          >
+            🗑️ Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Criar Orçamento -->
+  <div *ngIf="showCreateModal()" class="modal-overlay" (click)="closeCreateModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Criar Novo Orçamento</h2>
+        <button class="close-btn" (click)="closeCreateModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="tipo">Tipo de Serviço *</label>
+          <input 
+            id="tipo"
+            type="text"
+            placeholder="Ex: Desenvolvimento, Consultoria..."
+            [value]="formData().tipo"
+            (change)="updateFormField('tipo', $any($event.target).value)"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="categoria">Categoria *</label>
+          <input 
+            id="categoria"
+            type="text"
+            placeholder="Ex: Web, Mobile, Desktop..."
+            [value]="formData().categoria"
+            (change)="updateFormField('categoria', $any($event.target).value)"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="descricao">Descrição do Cliente *</label>
+          <textarea 
+            id="descricao"
+            placeholder="Descreva o que você precisa..."
+            rows="5"
+            [value]="formData().descricao_cliente"
+            (change)="updateFormField('descricao_cliente', $any($event.target).value)"
+          ></textarea>
+          <small>O Gemini analisará sua descrição e gerará um orçamento automático</small>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeCreateModal()">
+          Cancelar
+        </button>
+        <button 
+          class="btn-create-submit" 
+          (click)="createBudget()"
+          [disabled]="isCreating()"
+        >
+          {{ isCreating() ? 'Criando...' : '✨ Criar Orçamento' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

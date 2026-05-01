@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BudgetTipo {
+  SOFTWARE
+  HARDWARE
+}
+
+enum BudgetCategoria {
+  UPGRADE
+  REPARO
+  MANUTENCAO
+}
+
+enum BudgetStatus {
+  PENDENTE
+  GERADO
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  nome      String
+  email     String   @unique
+  senha     String
+  telefone  String?
+  avatarUrl String?
+  budgets   Budget[]
+}
+
+model Budget {
+  id                String          @id @default(uuid()) @db.Uuid
+  userId            String          @db.Uuid
+  user              User            @relation(fields: [userId], references: [id])
+  tipo              BudgetTipo
+  categoria         BudgetCategoria
+  descricao_cliente String          @db.Text
+  total_estimado    Decimal
+  status            BudgetStatus    @default(PENDENTE)
+  title             String?
+  technical_description String?         @db.Text
+  criado_em         DateTime        @default(now())
+  items             BudgetItem[]
+}
+
+model BudgetItem {
+  id             String  @id @default(uuid()) @db.Uuid
+  budgetId       String  @db.Uuid
+  budget         Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  descricao      String
+  quantidade     Int
+  unidade        String  @default("un")
+  valor_unitario Decimal
+  category       String
+}

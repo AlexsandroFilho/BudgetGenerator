@@ -1,0 +1,21 @@
+<nav class="navbar">
+  <div class="container navbar-content">
+    <div class="navbar-logo" routerLink="/">
+      <span class="logo-symbol">B</span>
+      <span class="logo-text">Budget<b>Generator</b></span>
+    </div>
+
+    <ul class="navbar-links">
+      <ng-container *ngIf="!isLoggedIn">
+        <li><button (click)="openLogin()" class="nav-link btn-text">Entrar</button></li>
+        <li><button (click)="openRegister()" class="btn btn-secondary">Teste Grátis</button></li>
+      </ng-container>
+
+      <ng-container *ngIf="isLoggedIn">
+        <li><a routerLink="/analytics" routerLinkActive="active" class="nav-link">📊 Dashboard</a></li>
+        <li><a routerLink="/profile" routerLinkActive="active" class="nav-link">Meu Perfil</a></li>
+        <li><button (click)="onLogout()" class="btn btn-outline">Sair</button></li>
+      </ng-container>
+    </ul>
+  </div>
+</nav>

@@ -1,0 +1,181 @@
+<div class="budget-detail-container">
+  <!-- Overlay -->
+  <div class="modal-overlay" (click)="closeModal()"></div>
+
+  <!-- Modal Principal -->
+  <div class="modal-content">
+    <!-- Header -->
+    <div class="detail-header">
+      <div class="header-top">
+        <div>
+          <h1 class="proposal-title">💼 Proposta Comercial</h1>
+          <p class="proposal-date">Emitida em {{ formatDate(budget.criado_em) }}</p>
+        </div>
+        <button class="btn-close" (click)="closeModal()">✕</button>
+      </div>
+    </div>
+
+    <!-- Scroll Container -->
+    <div class="detail-scroll">
+      <!-- Título da Proposta -->
+      <div class="proposal-section">
+        <div class="section-header">
+          <h2 class="title-badge">Título da Proposta</h2>
+          <button *ngIf="!isEditing" (click)="toggleEdit()" class="btn btn-edit">✏️ Editar</button>
+        </div>
+
+        <div *ngIf="!isEditing" class="proposal-display">
+          <div class="display-box">
+            <h3 class="proposal-main-title">{{ budget.title || 'Sem título' }}</h3>
+          </div>
+        </div>
+
+        <div *ngIf="isEditing" class="proposal-edit">
+          <form [formGroup]="editForm">
+            <textarea 
+              formControlName="title"
+              class="edit-textarea title-textarea"
+              placeholder="Digite o título da proposta..."
+              rows="2">
+            </textarea>
+            <small class="field-hint">Mínimo 5 caracteres</small>
+          </form>
+        </div>
+      </div>
+
+      <!-- Explicação Técnica -->
+      <div class="proposal-section">
+        <div class="section-header">
+          <h2 class="title-badge">Explicação Técnica</h2>
+        </div>
+
+        <div *ngIf="!isEditing" class="proposal-display">
+          <div class="tech-box">
+            <p class="tech-description">{{ budget.technical_description || 'Nenhuma explicação técnica disponível.' }}</p>
+          </div>
+        </div>
+
+        <div *ngIf="isEditing" class="proposal-edit">
+          <form [formGroup]="editForm">
+            <textarea 
+              formControlName="technical_description"
+              class="edit-textarea"
+              placeholder="Digite a explicação técnica..."
+              rows="6">
+            </textarea>
+            <small class="field-hint">Mínimo 15 caracteres</small>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tabela de Itens de Hardware -->
+      <div *ngIf="hardwareItems.length > 0" class="proposal-section">
+        <h2 class="title-badge">🖥️ Hardware & Equipamentos</h2>
+        <div class="table-wrapper">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Qtd</th>
+                <th>Valor Unit.</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of hardwareItems" class="table-row">
+                <td class="desc-cell">{{ item.descricao }}</td>
+                <td class="category-cell">{{ item.category }}</td>
+                <td class="qty-cell">{{ item.quantidade }}</td>
+                <td class="price-cell">{{ formatCurrency(item.valor_unitario) }}</td>
+                <td class="total-cell"><strong>{{ formatCurrency(item.quantidade * item.valor_unitario) }}</strong></td>
+              </tr>
+              <tr class="subtotal-row">
+                <td colspan="4" class="subtotal-label">Subtotal de Hardware:</td>
+                <td class="subtotal-value">{{ formatCurrency(hardwareSubtotal) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabela de Itens de Serviços -->
+      <div *ngIf="serviceItems.length > 0" class="proposal-section">
+        <h2 class="title-badge">🔧 Serviços & Mão de Obra</h2>
+        <div class="table-wrapper">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Qtd</th>
+                <th>Valor Unit.</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of serviceItems" class="table-row">
+                <td class="desc-cell">{{ item.descricao }}</td>
+                <td class="category-cell">{{ item.category }}</td>
+                <td class="qty-cell">{{ item.quantidade }}</td>
+                <td class="price-cell">{{ formatCurrency(item.valor_unitario) }}</td>
+                <td class="total-cell"><strong>{{ formatCurrency(item.quantidade * item.valor_unitario) }}</strong></td>
+              </tr>
+              <tr class="subtotal-row">
+                <td colspan="4" class="subtotal-label">Subtotal de Serviços:</td>
+                <td class="subtotal-value">{{ formatCurrency(serviceSubtotal) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Total Geral -->
+      <div class="proposal-section total-section">
+        <div class="grand-total-box">
+          <span class="total-label">Valor Total da Proposta:</span>
+          <span class="grand-total">{{ formatCurrency(grandTotal) }}</span>
+        </div>
+      </div>
+
+      <!-- Status e Metadados -->
+      <div class="proposal-section metadata-section">
+        <div class="metadata-grid">
+          <div class="metadata-item">
+            <label>Tipo</label>
+            <span>{{ budget.tipo }}</span>
+          </div>
+          <div class="metadata-item">
+            <label>Categoria</label>
+            <span>{{ budget.categoria }}</span>
+          </div>
+          <div class="metadata-item">
+            <label>Status</label>
+            <span class="status-badge" [ngClass]="'status-' + budget.status.toLowerCase()">
+              {{ budget.status }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer com Botões de Ação -->
+    <div class="detail-footer">
+      <div *ngIf="!isEditing" class="footer-actions">
+        <button (click)="closeModal()" class="btn btn-secondary">Fechar</button>
+        <button (click)="toggleEdit()" class="btn btn-primary">✏️ Editar Proposta</button>
+      </div>
+
+      <div *ngIf="isEditing" class="footer-actions editing">
+        <button (click)="cancelEdit()" class="btn btn-secondary">Cancelar</button>
+        <button 
+          (click)="saveChanges()" 
+          [disabled]="editForm.invalid || isSaving" 
+          class="btn btn-primary">
+          <span *ngIf="!isSaving">💾 Salvar Alterações</span>
+          <span *ngIf="isSaving" class="spinner-inline">Salvando...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

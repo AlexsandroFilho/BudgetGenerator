@@ -1,0 +1,51 @@
+<div class="analytics-container">
+  <div class="analytics-header">
+    <h1>📈 Dashboard de Analytics</h1>
+    <p>Visualize o desempenho e a distribuição dos seus orçamentos inteligentes.</p>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-box">
+    <span class="spinner"></span>
+    <p>Carregando dados estatísticos...</p>
+  </div>
+
+  <div *ngIf="!isLoading && stats" class="stats-content">
+    
+    <!-- Sumário em Cards -->
+    <div class="stats-summary">
+      <div class="summary-card">
+        <span class="summary-label">Total Gerado</span>
+        <span class="summary-value">{{ stats.totalCount }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Volume Financeiro</span>
+        <span class="summary-value highlight">{{ formatCurrency(stats.totalValue) }}</span>
+      </div>
+    </div>
+
+    <!-- Área de Gráficos -->
+    <div class="charts-section">
+      <div class="chart-controls">
+        <button [class.active]="activeChart === 'bar'" (click)="setChart('bar')" class="btn-tab">
+          <span class="icon">📊</span> Colunas: Por Categoria
+        </button>
+        <button [class.active]="activeChart === 'pie'" (click)="setChart('pie')" class="btn-tab">
+          <span class="icon">🍕</span> Pizza: Por Tipo
+        </button>
+      </div>
+
+      <div class="chart-card">
+        <div [hidden]="activeChart !== 'bar'" class="chart-wrapper">
+          <canvas #barChart></canvas>
+        </div>
+        <div [hidden]="activeChart !== 'pie'" class="chart-wrapper">
+          <canvas #pieChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="back-action">
+      <button routerLink="/" class="btn-back">← Voltar para Meus Orçamentos</button>
+    </div>
+  </div>
+</div>
