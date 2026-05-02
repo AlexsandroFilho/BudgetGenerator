@@ -30,6 +30,8 @@ export class Budget {
     public title?: string,
     public technical_description?: string,
     public items?: BudgetItem[],
-    public user?: User
+    public user?: User,
+    public cliente_nome?: string,
+    public prestador_nome?: string
   ) {}
 }

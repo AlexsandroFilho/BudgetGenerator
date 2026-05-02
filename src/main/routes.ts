@@ -10,6 +10,7 @@ import { GetBudgetStatsUseCase } from '../application/use-cases/GetBudgetStatsUs
 
 import { PrismaBudgetRepository } from '../infrastructure/database/prisma/PrismaBudgetRepository';
 import { GeminiBudgetService } from '../infrastructure/external-services/GeminiBudgetService';
+import { PriceResearchService } from '../infrastructure/external-services/PriceResearchService';
 
 // Usuários
 import { UserController } from '../presentation/controllers/UserController';
@@ -36,8 +37,9 @@ const passwordHasher = new BcryptPasswordHasher();
 // ... (omitted for brevity in replace, but keeping logic)
 const budgetRepository = new PrismaBudgetRepository();
 const budgetGenerator = new GeminiBudgetService();
+const priceResearchService = new PriceResearchService();
 
-const generateBudgetUseCase = new GenerateBudgetUseCase(budgetRepository, budgetGenerator);
+const generateBudgetUseCase = new GenerateBudgetUseCase(budgetRepository, budgetGenerator, priceResearchService);
 const listUserBudgetsUseCase = new ListUserBudgetsUseCase(budgetRepository);
 const getBudgetByIdUseCase = new GetBudgetByIdUseCase(budgetRepository);
 const deleteBudgetUseCase = new DeleteBudgetUseCase(budgetRepository);

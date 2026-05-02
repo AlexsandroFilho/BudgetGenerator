@@ -49,14 +49,17 @@ export class LandingPageComponent implements OnInit {
   budgetForm: FormGroup = this.fb.group({
     tipo: [BudgetTipo.SOFTWARE, Validators.required],
     categoria: [BudgetCategoria.UPGRADE, Validators.required],
-    descricao_cliente: ['', [Validators.required, Validators.minLength(10)]]
+    descricao_cliente: ['', [Validators.required, Validators.minLength(10)]],
+    showPartsDetail: [false],
+    cliente_nome: [''],
+    prestador_nome: ['']
   });
   formError = '';
 
   servicos = [
-    { titulo: 'Upgrade', descricao: 'Eleve a performance com as melhores sugestões de hardware e software orientadas por IA.', icon: '🚀' },
-    { titulo: 'Reparo', descricao: 'Identificação rápida de falhas e orçamentos precisos para reparos técnicos especializados.', icon: '🛠️' },
-    { titulo: 'Manutenção', descricao: 'Planos preventivos para garantir que seu equipamento nunca te deixe na mão.', icon: '🛡️' }
+    { titulo: 'Upgrade', descricao: 'Descreva a melhoria que o cliente precisa e receba um orçamento com itens, quantidades e valores estimados — sem pesquisar nada manualmente.', icon: '🚀' },
+    { titulo: 'Reparo', descricao: 'Informe o problema e a IA identifica os serviços envolvidos, gera a lista de itens com valores de mercado e entrega uma proposta pronta para aprovação.', icon: '🛠️' },
+    { titulo: 'Manutenção', descricao: 'Descreva o ambiente do cliente e receba uma proposta de manutenção preventiva completa, com itens e custos estimados para fechar contrato.', icon: '🛡️' }
   ];
 
   ngOnInit(): void {
@@ -70,7 +73,12 @@ export class LandingPageComponent implements OnInit {
   }
 
   loadProfile(): void {
-    this.authService.getProfile().subscribe(user => this.user = user);
+    this.authService.getProfile().subscribe(user => {
+      this.user = user;
+      if (user?.nome) {
+        this.budgetForm.patchValue({ prestador_nome: user.nome });
+      }
+    });
   }
 
   openLogin(): void { this.authModalService.openLogin(); }
@@ -197,17 +205,24 @@ export class LandingPageComponent implements OnInit {
     // Title
     doc.setDrawColor(200, 200, 200);
     doc.line(20, 85, 190, 85);
-    
-    doc.setFontSize(16);
+
+    let currentY = 97;
+
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
-    doc.text(budget.title || 'Proposta de Serviço', 20, 100);
-    
+    const titleLines = doc.splitTextToSize(budget.title || 'Proposta de Serviço', 170);
+    doc.text(titleLines, 20, currentY);
+    currentY += titleLines.length * 8 + 4;
+
     // Technical Description
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
     const splitDesc = doc.splitTextToSize(budget.technical_description || '', 170);
-    doc.text(splitDesc, 20, 110);
-    
+    doc.text(splitDesc, 20, currentY);
+    doc.setTextColor(0, 0, 0);
+    currentY += splitDesc.length * 5 + 10;
+
     // Items Table
     const tableData = (budget.items || []).map(item => [
       item.descricao,
@@ -215,9 +230,9 @@ export class LandingPageComponent implements OnInit {
       this.formatCurrency(Number(item.valor_unitario)),
       this.formatCurrency(Number(item.valor_unitario) * item.quantidade)
     ]);
-    
+
     autoTable(doc, {
-      startY: 120 + (splitDesc.length * 5),
+      startY: currentY,
       head: [['Descrição', 'Qtd', 'Unitário', 'Subtotal']],
       body: tableData,
       headStyles: { fillColor: primaryColor as any },
@@ -225,12 +240,71 @@ export class LandingPageComponent implements OnInit {
       footStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0], fontStyle: 'bold' }
     });
     
-    // Footer
-    const finalY = (doc as any).lastAutoTable.finalY + 30;
+    // Garantia + Assinaturas
+    const tableEndY = (doc as any).lastAutoTable.finalY;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Se não couber tudo na página atual, abre nova página
+    let blockY = tableEndY + 20;
+    if (blockY + 80 > pageHeight - 20) {
+      doc.addPage();
+      blockY = 30;
+    }
+
+    // Garantia
     doc.setFontSize(10);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Este documento foi gerado automaticamente por IA.', 105, finalY, { align: 'center' });
-    
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Garantia:', 20, blockY);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Garantia de 1 ano para o hardware (fabricante) e 30 dias para o serviço de instalação.', 20, blockY + 6);
+
+    // Linha divisória
+    doc.setDrawColor(220, 220, 220);
+    doc.line(20, blockY + 20, 190, blockY + 20);
+
+    // Assinaturas
+    const sigY = blockY + 50;
+    doc.setDrawColor(0, 0, 0);
+
+    // Nome do cliente acima da linha (em maiúsculas, se preenchido)
+    if (budget.cliente_nome?.trim()) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(budget.cliente_nome.trim().toUpperCase(), 55, sigY - 5, { align: 'center' });
+    }
+
+    // Linha assinatura cliente
+    doc.line(20, sigY, 90, sigY);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Assinatura do Cliente', 55, sigY + 7, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Nome / Data', 55, sigY + 13, { align: 'center' });
+
+    // Nome do prestador acima da linha (em maiúsculas)
+    const prestadorNome = budget.prestador_nome?.trim() || this.user?.nome || '';
+    if (prestadorNome) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(prestadorNome.toUpperCase(), 155, sigY - 5, { align: 'center' });
+    }
+
+    // Linha assinatura prestador
+    doc.line(120, sigY, 190, sigY);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Assinatura do Prestador', 155, sigY + 7, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Nome / Data', 155, sigY + 13, { align: 'center' });
+
     doc.save(`orcamento-${budget.id.substring(0, 8)}.pdf`);
   }
 

@@ -42,7 +42,7 @@ export class BudgetService {
   /**
    * Cria um novo orçamento inteligente usando IA.
    */
-  createBudget(data: { tipo: string; categoria: string; descricao_cliente: string }): Observable<Budget> {
+  createBudget(data: { tipo: string; categoria: string; descricao_cliente: string; showPartsDetail: boolean; cliente_nome?: string; prestador_nome?: string }): Observable<Budget> {
     return this.http.post<Budget>(this.apiUrl, data);
   }
 

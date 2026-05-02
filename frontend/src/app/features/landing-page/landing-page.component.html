@@ -4,22 +4,22 @@
     <div class="container hero-content">
       <div class="hero-text">
         <h1>Gere Orçamentos Inteligentes em <span>Segundos</span></h1>
-        <p>Utilizamos Inteligência Artificial para decompor suas necessidades técnicas em orçamentos precisos e profissionais.</p>
+        <p>Descreva o projeto do seu cliente e nossa IA transforma os requisitos técnicos em uma proposta comercial detalhada e pronta para entregar.</p>
         <div class="hero-actions">
           <button (click)="openRegister()" class="btn btn-primary btn-lg">Começar Agora — É Grátis</button>
           <button (click)="openLogin()" class="btn btn-outline-white">Já tenho conta</button>
         </div>
       </div>
       <div class="hero-image">
-        <div class="image-placeholder">AI POWERED ✨</div>
+        <img src="/BG.png" alt="BudgetGenerator" class="hero-img" />
       </div>
     </div>
   </section>
 
   <section class="services">
     <div class="container text-center">
-      <h2 class="section-title">Nossos Serviços</h2>
-      <p class="section-subtitle">Soluções completas para suas necessidades tecnológicas.</p>
+      <h2 class="section-title">O que você pode gerar?</h2>
+      <p class="section-subtitle">Descreva o que o cliente precisa e nossa IA monta um orçamento profissional por você — detalhado, com valores de mercado e pronto para apresentar.</p>
       <div class="services-grid">
         <div class="service-card" *ngFor="let servico of servicos">
           <div class="service-icon">{{ servico.icon }}</div>
@@ -32,7 +32,7 @@
 
   <section class="cta">
     <div class="container text-center">
-      <h2>Pronto para otimizar seus orçamentos?</h2>
+      <h2>Pronto para profissionalizar suas propostas técnicas?</h2>
       <button (click)="openRegister()" class="btn btn-primary btn-lg">Criar Minha Conta Grátis</button>
     </div>
   </section>
@@ -87,6 +87,29 @@
           </textarea>
           <small *ngIf="budgetForm.get('descricao_cliente')?.invalid && budgetForm.get('descricao_cliente')?.touched" class="field-error">
             Mínimo de 10 caracteres.
+          </small>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-field">
+            <label for="cliente_nome">Nome do cliente <span class="label-optional">(opcional)</span></label>
+            <input type="text" id="cliente_nome" formControlName="cliente_nome" placeholder="Ex: João Silva" />
+          </div>
+          <div class="form-field">
+            <label for="prestador_nome">Seu nome na proposta</label>
+            <input type="text" id="prestador_nome" formControlName="prestador_nome" placeholder="Seu nome ou empresa" />
+          </div>
+        </div>
+
+        <div class="form-field toggle-field">
+          <span class="toggle-text">Detalhar custo de peças no orçamento</span>
+          <input type="checkbox" id="partsDetailCheck" formControlName="showPartsDetail" class="toggle-hidden" />
+          <label for="partsDetailCheck" class="toggle-track" [class.toggle-track--on]="budgetForm.get('showPartsDetail')?.value">
+            <span class="toggle-thumb"></span>
+          </label>
+          <small class="toggle-hint">
+            <strong>Ligado:</strong> peças e mão de obra listadas separadamente com preços de mercado.<br/>
+            <strong>Desligado:</strong> valor total consolidado, sem expor o custo individual das peças.
           </small>
         </div>
 

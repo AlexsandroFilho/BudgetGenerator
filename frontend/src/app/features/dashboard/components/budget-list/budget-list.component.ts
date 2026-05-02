@@ -28,7 +28,8 @@ export class BudgetListComponent implements OnInit {
   formData = signal({
     tipo: '',
     categoria: '',
-    descricao_cliente: ''
+    descricao_cliente: '',
+    showPartsDetail: false
   });
 
   ngOnInit(): void {
@@ -71,7 +72,8 @@ export class BudgetListComponent implements OnInit {
     this.formData.set({
       tipo: '',
       categoria: '',
-      descricao_cliente: ''
+      descricao_cliente: '',
+      showPartsDetail: false
     });
   }
 
@@ -87,7 +89,8 @@ export class BudgetListComponent implements OnInit {
     this.budgetService.createBudget({
       tipo: data.tipo,
       categoria: data.categoria,
-      descricao_cliente: data.descricao_cliente
+      descricao_cliente: data.descricao_cliente,
+      showPartsDetail: data.showPartsDetail
     }).subscribe({
       next: (newBudget: Budget) => {
         this.isCreating.set(false);
@@ -145,9 +148,7 @@ export class BudgetListComponent implements OnInit {
     return status === BudgetStatus.GERADO ? '✓ Gerado' : '⏳ Pendente';
   }
 
-  updateFormField(field: string, value: string): void {
-    const data = this.formData();
-    data[field as keyof typeof data] = value;
-    this.formData.set({ ...data });
+  updateFormField(field: string, value: string | boolean): void {
+    this.formData.set({ ...this.formData(), [field]: value });
   }
 }

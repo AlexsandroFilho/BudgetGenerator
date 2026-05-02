@@ -35,4 +35,6 @@ export interface Budget {
   technical_description?: string;
   criado_em: Date;
   items?: BudgetItem[];
+  cliente_nome?: string;
+  prestador_nome?: string;
 }

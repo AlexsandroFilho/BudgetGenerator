@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { IBudgetGenerator, BudgetParams, BudgetOutput } from '../../domain/interfaces/IBudgetGenerator';
+import { IBudgetGenerator, BudgetParams, BudgetOutput, PartsAnalysis } from '../../domain/interfaces/IBudgetGenerator';
+import { PartResearch } from './PriceResearchService';
 
 export class GeminiBudgetService implements IBudgetGenerator {
   private genAI: GoogleGenerativeAI;
@@ -10,187 +11,184 @@ export class GeminiBudgetService implements IBudgetGenerator {
     if (!apiKey) {
       throw new Error('A API Key do Gemini (GEMINI_API_KEY) não está definida nas variáveis de ambiente.');
     }
-
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   }
 
-  async generate(params: BudgetParams): Promise<BudgetOutput> {
-    const { tipo, categoria, descricao_cliente } = params;
+  // --- CHAMADA 1: Analisa se o serviço precisa de peças físicas ---
+  async analyzePartsNeeded(descricao: string, tipo: string, categoria: string): Promise<PartsAnalysis> {
+    const prompt = `Você é um técnico de TI experiente. Analise a solicitação abaixo e determine se ela exige a COMPRA de peças físicas (hardware, componentes, cabos, etc.) pelo prestador de serviço para execução.
 
-    const prompt = `Você é um Consultor de TI Sênior especializado em prestação de serviços técnicos.
-Seu objetivo é analisar a solicitação do cliente e gerar uma proposta de PRESTAÇÃO DE SERVIÇOS detalhada. O foco do orçamento DEVE SER OS SERVIÇOS EXECUTADOS (mão de obra), e não a venda de produtos. Em vez de listar peças (como "Placa de vídeo"), liste as tarefas técnicas necessárias (ex: "Desmontagem do equipamento", "Limpeza química", "Instalação física", "Configuração e testes").
+Solicitação:
+- Tipo: ${tipo}
+- Categoria: ${categoria}
+- Descrição: "${descricao}"
 
-Informações da Solicitação:
-- Tipo: ${tipo} (Software/Hardware)
-- Categoria: ${categoria} (Upgrade/Reparo/Manutencao)
-- Descrição do Cliente: "${descricao_cliente}"
+REGRAS:
+- Se o cliente mencionou que JÁ TEM a peça (ex: "memória já comprada"), needs_parts = false
+- Serviços puramente de mão de obra (limpeza, configuração, formatação, instalação de software) = needs_parts = false
+- Se precisar comprar peças, liste-as com queries de busca em português para lojas brasileiras (ex: "memória ram 8gb ddr4")
 
-INSTRUÇÕES CRÍTICAS PARA O RETORNO:
-1. Retorne SOMENTE um objeto JSON válido, sem qualquer texto adicional
-2. NÃO inclua blocos de código markdown
-3. NUNCA inclua quebras de linha dentro de strings - use espaços em vez disso
-4. Todas as strings devem usar aspas duplas
-5. Números devem ser valores numéricos, NÃO strings
-
-Estrutura JSON obrigatória:
+Retorne SOMENTE JSON válido:
 {
-  "title": "Um título comercial impactante focado no serviço a ser prestado",
-  "technical_description": "Breve descrição (máximo 1 frase) clara e objetiva",
+  "needs_parts": true,
+  "parts": [
+    { "name": "Nome da peça", "searchQuery": "query de busca para loja" }
+  ]
+}
+
+Se needs_parts for false, retorne parts como array vazio.`;
+
+    try {
+      const result = await this.callWithRetry(prompt);
+      return this.parseAnalysis(result);
+    } catch {
+      return { needs_parts: false, parts: [] };
+    }
+  }
+
+  // --- CHAMADA 2: Gera o orçamento completo com contexto de preços ---
+  async generate(params: BudgetParams): Promise<BudgetOutput> {
+    const { tipo, categoria, descricao_cliente, showPartsDetail, partsResearch } = params;
+
+    const partsContext = this.buildPartsContext(partsResearch, showPartsDetail);
+
+    const prompt = `Você é um Consultor de TI Sênior gerando uma proposta comercial profissional.
+
+Solicitação do cliente:
+- Tipo: ${tipo}
+- Categoria: ${categoria}
+- Descrição: "${descricao_cliente}"
+
+${partsContext}
+
+INSTRUÇÕES DE FORMATAÇÃO DOS ITENS:
+${showPartsDetail && partsResearch && partsResearch.length > 0
+  ? `- OBRIGATÓRIO: inclua cada peça pesquisada como um item separado com category "Peça", usando o preço médio fornecido acima
+- Inclua a mão de obra de instalação/execução como itens separados com category "Serviço"
+- O total_estimado deve ser a soma de TODOS os itens (peças + serviços)`
+  : `- Liste os serviços executados como itens de mão de obra com category "Serviço"
+- Se houver peças necessárias, inclua-as de forma agrupada com descrição genérica na category "Peça"
+- O total_estimado deve ser a soma de todos os itens`}
+
+INSTRUÇÕES CRÍTICAS:
+1. Retorne SOMENTE JSON válido, sem texto adicional
+2. NÃO use blocos markdown
+3. NUNCA quebre linhas dentro de strings
+4. Strings com aspas duplas, números como valores numéricos
+5. A unidade deve ser "un", "hrs", "m" ou "kit" conforme o item
+
+Estrutura obrigatória:
+{
+  "title": "Título comercial do serviço",
+  "technical_description": "Descrição técnica em UMA frase objetiva",
   "total_estimado": 0,
   "items": [
     {
-      "descricao": "Taxa de Diagnóstico (se aplicável)",
+      "descricao": "Descrição do item",
       "quantidade": 1,
       "unidade": "un",
       "valor_unitario": 0,
       "category": "Serviço"
     }
   ]
-}
-
-Instruções Detalhadas:
-- title: Título curto e focado no serviço
-- technical_description: TEXTO EXTREMAMENTE CURTO, MÁXIMO DE 1 FRASE. Seja direto. Ex: "Diagnóstico e reparo de sistema corrompido." NÃO enrole e NÃO faça descrições gigantes.
-- total_estimado: Soma de todos os valores (quantidade x valor_unitario)
-- items: SEPARE TODOS OS CUSTOS EM ITENS NESTA LISTA. Se a solicitação envolver análise (ex: diagnosticar Windows corrompido), INCLUA OBRIGATORIAMENTE um item de "Taxa de Diagnóstico" ou "Análise Técnica" com o seu devido valor real em Reais (BRL). Liste TODOS os custos com valores realistas (BRL). A tabela será gerada com base nestes itens, liste tudo (diagnóstico, mão de obra, peças, etc). Inclua o campo "unidade" (ex: "un", "hrs", "m").
-
-EXEMPLO DE RESPOSTA ESPERADA:
-{
-  "title": "Manutenção Preventiva e Limpeza de Hardware",
-  "technical_description": "Proposta para prestação de serviços de manutenção técnica, limpeza química e troca de pasta térmica.",
-  "total_estimado": 350,
-  "items": [
-    {
-      "descricao": "Desmontagem completa e limpeza química de contatos",
-      "quantidade": 1,
-      "unidade": "un",
-      "valor_unitario": 150,
-      "category": "Serviço"
-    },
-    {
-      "descricao": "Troca de pasta térmica (CPU/GPU) de alta performance",
-      "quantidade": 1,
-      "unidade": "un",
-      "valor_unitario": 120,
-      "category": "Serviço"
-    },
-    {
-      "descricao": "Testes de estresse e validação de temperatura",
-      "quantidade": 1,
-      "unidade": "un",
-      "valor_unitario": 80,
-      "category": "Serviço"
-    }
-  ]
 }`;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const outputText = result.response.text();
-
-      return this.parseResponse(outputText);
+      const text = await this.callWithRetry(prompt);
+      return this.parseResponse(text);
     } catch (error) {
       throw new Error(`Falha ao comunicar com a API do Gemini: ${(error as Error).message}`);
     }
   }
 
+  private async callWithRetry(prompt: string, maxRetries = 3): Promise<string> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await this.model.generateContent(prompt);
+        return result.response.text();
+      } catch (error) {
+        const msg = (error as Error).message || '';
+        const is503 = msg.includes('503') || msg.includes('Service Unavailable') || msg.includes('high demand');
+        if (is503 && attempt < maxRetries) {
+          const delay = attempt * 3000;
+          console.log(`⚠️  Gemini 503 — tentativa ${attempt}/${maxRetries}, aguardando ${delay / 1000}s...`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error('Gemini indisponível após múltiplas tentativas. Tente novamente em alguns instantes.');
+  }
+
+  private buildPartsContext(partsResearch: PartResearch[] | undefined, showPartsDetail: boolean): string {
+    if (!partsResearch || partsResearch.length === 0) return '';
+
+    const lines = partsResearch.map(p => {
+      if (p.average === 0) {
+        return `- ${p.partName}: preço não encontrado, use estimativa de mercado`;
+      }
+      const sitesInfo = p.cheapest.map(c => `${c.site}: R$${c.price.toFixed(2)}`).join(', ');
+      return `- ${p.partName}: média R$${p.average.toFixed(2)} (encontrado em: ${sitesInfo})`;
+    });
+
+    const label = showPartsDetail
+      ? 'PREÇOS REAIS PESQUISADOS (liste cada peça separada no orçamento com esses valores):'
+      : 'REFERÊNCIA DE PREÇOS (use para compor o valor total, sem detalhar por peça):';
+
+    return `\n${label}\n${lines.join('\n')}\n`;
+  }
+
+  private parseAnalysis(text: string): PartsAnalysis {
+    try {
+      let clean = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) clean = match[0];
+      const parsed = JSON.parse(clean);
+      return {
+        needs_parts: Boolean(parsed.needs_parts),
+        parts: Array.isArray(parsed.parts) ? parsed.parts : [],
+      };
+    } catch {
+      return { needs_parts: false, parts: [] };
+    }
+  }
+
   private parseResponse(text: string): BudgetOutput {
     try {
-      // Passo 1: Remover blocos de código markdown
-      let cleanedText = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+      let clean = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) clean = match[0];
+      clean = clean.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ');
 
-      // Passo 2: Extrair apenas o JSON se houver texto antes/depois
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanedText = jsonMatch[0];
-      }
+      const parsed = JSON.parse(clean);
 
-      // Passo 3: Limpar quebras de linha (substituir por espaço)
-      cleanedText = cleanedText.replace(/[\r\n]+/g, ' ');
-
-      // Passo 4: Normalizar múltiplos espaços
-      cleanedText = cleanedText.replace(/\s+/g, ' ');
-
-      // Passo 5: Parse JSON
-      const parsedData = JSON.parse(cleanedText);
-
-      // Passo 6: Validar estrutura básica
       if (
-        !parsedData ||
-        typeof parsedData !== 'object' ||
-        typeof parsedData.title !== 'string' ||
-        typeof parsedData.technical_description !== 'string' ||
-        typeof parsedData.total_estimado !== 'number' ||
-        !Array.isArray(parsedData.items)
+        !parsed ||
+        typeof parsed.title !== 'string' ||
+        typeof parsed.technical_description !== 'string' ||
+        typeof parsed.total_estimado !== 'number' ||
+        !Array.isArray(parsed.items) ||
+        parsed.items.length === 0
       ) {
-        throw new Error(
-          'Estrutura inválida. Campos obrigatórios: title (string), technical_description (string), total_estimado (number), items (array)'
-        );
+        throw new Error('Estrutura JSON inválida ou incompleta retornada pelo Gemini.');
       }
 
-      // Passo 7: Validar items não vazio
-      if (parsedData.items.length === 0) {
-        throw new Error('Deve haver ao menos um item na proposta.');
-      }
-
-      // Passo 8: Validar e normalizar cada item
-      parsedData.items.forEach((item: any, index: number) => {
-        // Validar tipos
-        if (
-          typeof item.descricao !== 'string' ||
-          typeof item.quantidade !== 'number' ||
-          typeof item.unidade !== 'string' ||
-          typeof item.valor_unitario !== 'number' ||
-          typeof item.category !== 'string'
-        ) {
-          throw new Error(
-            `Item [${index}] inválido. Campos: descricao (string), quantidade (number), unidade (string), valor_unitario (number), category (string)`
-          );
+      parsed.items.forEach((item: any, i: number) => {
+        if (typeof item.descricao !== 'string' || typeof item.quantidade !== 'number' || typeof item.valor_unitario !== 'number') {
+          throw new Error(`Item [${i}] com campos inválidos.`);
         }
-
-        // Normalizar quantidade para inteiro
-        item.quantidade = Math.round(item.quantidade);
-
-        // Validar valores positivos
-        if (item.quantidade <= 0) {
-          throw new Error(`Item [${index}]: quantidade deve ser maior que 0`);
-        }
-        if (item.valor_unitario <= 0) {
-          throw new Error(`Item [${index}]: valor_unitario deve ser maior que 0`);
-        }
-
-        // Validar strings não vazias
-        if (item.descricao.trim().length === 0) {
-          throw new Error(`Item [${index}]: descricao não pode estar vazia`);
-        }
-        if (item.category.trim().length === 0) {
-          throw new Error(`Item [${index}]: category não pode estar vazia`);
-        }
+        item.quantidade = Math.max(1, Math.round(item.quantidade));
+        item.unidade = item.unidade || 'un';
+        if (item.valor_unitario <= 0) throw new Error(`Item [${i}]: valor_unitario deve ser > 0`);
       });
 
-      // Passo 9: Validações finais do objeto
-      if (!parsedData.title || parsedData.title.trim().length === 0) {
-        throw new Error('Title não pode estar vazio');
-      }
+      if (parsed.total_estimado <= 0) throw new Error('total_estimado deve ser > 0');
 
-      if (!parsedData.technical_description || parsedData.technical_description.trim().length === 0) {
-        throw new Error('Technical description não pode estar vazio');
-      }
-
-      if (parsedData.total_estimado <= 0) {
-        throw new Error('Total estimado deve ser maior que 0');
-      }
-
-      return parsedData as BudgetOutput;
+      return parsed as BudgetOutput;
     } catch (error) {
-      console.error('Erro ao parsear resposta do Gemini:', {
-        textLength: text.length,
-        firstChars: text.substring(0, 100),
-        errorMessage: (error as Error).message
-      });
-
-      throw new Error(`Falha ao processar JSON do Gemini: ${(error as Error).message}`);
+      throw new Error(`Falha ao processar resposta do Gemini: ${(error as Error).message}`);
     }
   }
 }

@@ -48,6 +48,8 @@ model Budget {
   status            BudgetStatus    @default(PENDENTE)
   title             String?
   technical_description String?         @db.Text
+  cliente_nome      String?
+  prestador_nome    String?
   criado_em         DateTime        @default(now())
   items             BudgetItem[]
 }

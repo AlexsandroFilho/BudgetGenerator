@@ -18,6 +18,8 @@ export class PrismaBudgetRepository implements IBudgetRepository {
         total_estimado: budget.total_estimado,
         status: budget.status as any,
         criado_em: budget.criado_em,
+        cliente_nome: budget.cliente_nome,
+        prestador_nome: budget.prestador_nome,
       },
       create: {
         id: budget.id,
@@ -30,6 +32,8 @@ export class PrismaBudgetRepository implements IBudgetRepository {
         total_estimado: budget.total_estimado,
         status: budget.status as any,
         criado_em: budget.criado_em,
+        cliente_nome: budget.cliente_nome,
+        prestador_nome: budget.prestador_nome,
       },
     });
 
@@ -82,7 +86,10 @@ export class PrismaBudgetRepository implements IBudgetRepository {
       budget.criado_em,
       budget.title ?? undefined,
       budget.technical_description ?? undefined,
-      items
+      items,
+      undefined,
+      budget.cliente_nome ?? undefined,
+      budget.prestador_nome ?? undefined
     );
   }
 
@@ -108,7 +115,10 @@ export class PrismaBudgetRepository implements IBudgetRepository {
         budget.criado_em,
         budget.title ?? undefined,
         budget.technical_description ?? undefined,
-        items
+        items,
+        undefined,
+        budget.cliente_nome ?? undefined,
+        budget.prestador_nome ?? undefined
       );
     });
   }

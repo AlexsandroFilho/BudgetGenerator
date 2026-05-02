@@ -21,7 +21,7 @@ export class BudgetController {
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id: userId } = req.user;
-      const { tipo, categoria, descricao_cliente } = req.body;
+      const { tipo, categoria, descricao_cliente, showPartsDetail, cliente_nome, prestador_nome } = req.body;
 
       if (!tipo || !categoria || !descricao_cliente) {
         throw new AppError('Todos os campos são obrigatórios: tipo, categoria, descricao_cliente.');
@@ -31,7 +31,10 @@ export class BudgetController {
         userId,
         tipo,
         categoria,
-        descricao_cliente
+        descricao_cliente,
+        showPartsDetail: showPartsDetail === true || showPartsDetail === 'true',
+        cliente_nome: cliente_nome || undefined,
+        prestador_nome: prestador_nome || undefined,
       });
 
       res.status(201).json(budget);
